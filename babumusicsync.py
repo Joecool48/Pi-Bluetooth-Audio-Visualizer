@@ -3,7 +3,8 @@ import time
 from Queue import Queue
 from ctypes import POINTER, c_ubyte, c_void_p, c_ulong, cast
 from dotstar import Adafruit_DotStar
-
+import numpy as np
+import numpy.fft as fft
 numPixels = 300 # Number of LEDs in strip
 
 strip   = Adafruit_DotStar(numPixels)
@@ -20,6 +21,7 @@ METER_RATE = 344
 MAX_SAMPLE_VALUE = 127
 DISPLAY_SCALE = 2
 MAX_SPACES = MAX_SAMPLE_VALUE >> DISPLAY_SCALE
+SAMPLES_PER_FFT = (METER_RATE * numPixels / 1000)
 
 def rainbowCycle(wait):
         for j in range(0,256*5):
@@ -124,22 +126,52 @@ class PeakMonitor(object):
             self._samples.put(data[i] - 128)
         pa_stream_drop(stream)
 
+    def get_samples_len(self):
+        return self._samples.qsize()
+    def get_samples(amount):
+        samples = []
+        for i in range(0, amount):
+            samples.append(self._samples.get() >> DISPLAY_SCALE)
+        return samples
+
 def map(value, from_min, from_max, to_min, to_max):
 	return ((to_max-to_min) * ((value-from_min)/(from_max-from_min)))+to_min
-
+# Return a color that is either in red, orange, yellow, green, blue, or purple range
+def fourier_pixel_color(intensity, max_intensity):
+    color_value = int((intensity / max_intensity) * 1020)
+    if color_value <= 204:
+        return (255, 51 + color_value, 51)
+    elif color_value <= 408:
+        return (51 + (408 - color_value), 255, 51)
+    elif color_value <= 612:
+        return (51, 255, 51 + (color_value - 408))
+    elif color_value <= 816:
+        return (51, 816 - color_value + 51, 255)
+    else:
+        return (51 + color_value - 816, 255)
 def main():
-	j = 0
-	monitor = PeakMonitor(SINK_NAME, METER_RATE)
+    j = 0
+    monitor = PeakMonitor(SINK_NAME, METER_RATE)
+    while True:
+        if monitor.get_samples_len() >= SAMPLES_PER_FFT:
+            samples = monitor.get_samples(SAMPLES_PER_FFT)
+            fourier = abs(fft.fft(np.array(samples)))
+            max_intensity = max(fourier)
+            led_bin_size = (numPixels // len(fourier))
+            bins = fft.fftfreq(SAMPLES_PER_FFT)
+            for intensity in fourier:
+                color_tuple = fourier_pixel_color(intensity, max_intensity)
+                
+    '''
 	for sample in monitor:
-		sample = sample >> DISPLAY_SCALE
-		'''
+
 		if sample == 0:
 			rainbowCycle(j, 0.01)
 			j += 1
 			if j >= 256*5:
 				j = 0
 		else:
-		'''
+
 		sample = ((float(sample))/120)*280
 		for i in range(0,numPixels/2+1):
 			if i < sample*1.5:
@@ -154,7 +186,6 @@ def main():
 		strip.show()
 		print '%3d\r' % (sample),
         	sys.stdout.flush()
-
+        '''
 if __name__ == '__main__':
 	main()
-
