@@ -155,7 +155,7 @@ def main():
     while True:
         if monitor.get_samples_len() >= SAMPLES_PER_FFT:
             samples = monitor.get_samples(SAMPLES_PER_FFT)
-            fourier = abs(fft.fft(np.array(samples)))
+            fourier = map(abs, list(fft.fft(np.array(samples))))
             max_intensity = max(fourier)
             led_bin_size = (numPixels // len(fourier))
             bins = fft.fftfreq(SAMPLES_PER_FFT)
