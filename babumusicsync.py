@@ -159,10 +159,13 @@ def main():
             max_intensity = max(fourier)
             led_bin_size = (numPixels // len(fourier))
             bins = fft.fftfreq(SAMPLES_PER_FFT)
-            for fourier_index in range(0, len(fourier)):
+            color_tuple = ()
+            for fourier_index in range(0, len(fourier) - 1):
                 color_tuple = fourier_pixel_color(fourier[fourier_index], max_intensity)
                 for i in range(led_bin_size * fourier_index, led_bin_size * (fourier_index + 1)):
                     strip.setPixelColor(i, strip.Color(color_tuple))
+            for i in range(len(fourier) * led_bin_size, numPixels):
+                strip.setPixelColor(i, strip.Color(color_tuple))
             strip.show()
     '''
 	for sample in monitor:
