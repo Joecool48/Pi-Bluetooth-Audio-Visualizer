@@ -148,7 +148,7 @@ def fourier_pixel_color(intensity, max_intensity):
     elif color_value <= 816:
         return (51, 816 - color_value + 51, 255)
     else:
-        return (51 + color_value - 816, 255)
+        return (51 + color_value - 816, 51, 255)
 def main():
     j = 0
     monitor = PeakMonitor(SINK_NAME, METER_RATE)
